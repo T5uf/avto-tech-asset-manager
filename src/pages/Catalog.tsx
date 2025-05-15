@@ -83,7 +83,7 @@ const Catalog = () => {
                   <SelectValue placeholder="Все категории" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Все категории</SelectItem>
+                  <SelectItem value="all">Все категории</SelectItem>
                   <SelectItem value="computer">Компьютеры</SelectItem>
                   <SelectItem value="printer">Принтеры</SelectItem>
                   <SelectItem value="network">Сетевое оборудование</SelectItem>
@@ -100,7 +100,7 @@ const Catalog = () => {
                   <SelectValue placeholder="Все статусы" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Все статусы</SelectItem>
+                  <SelectItem value="all">Все статусы</SelectItem>
                   <SelectItem value="active">В работе</SelectItem>
                   <SelectItem value="repair">На ремонте</SelectItem>
                   <SelectItem value="storage">На складе</SelectItem>
