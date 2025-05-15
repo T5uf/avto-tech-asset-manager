@@ -18,7 +18,8 @@ import {
   List,
   Plus,
   Settings,
-  Users
+  Users,
+  LogOut
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 
@@ -82,7 +83,7 @@ const Sidebar = () => {
           {menuItems.map((item) => (
             <SidebarMenuItem key={item.path}>
               <SidebarMenuButton 
-                active={location.pathname === item.path}
+                isActive={location.pathname === item.path}
                 onClick={() => navigate(item.path)}
               >
                 {item.icon}
@@ -94,7 +95,7 @@ const Sidebar = () => {
       </SidebarContent>
       <SidebarFooter>
         <Button variant="outline" size="sm" className="w-full">
-          <User className="w-4 h-4 mr-2" />
+          <LogOut className="w-4 h-4 mr-2" />
           Выйти
         </Button>
       </SidebarFooter>
