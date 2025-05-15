@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -9,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 import { 
   Settings as SettingsIcon, 
   Save, 
@@ -312,7 +312,7 @@ const Settings = () => {
                     <div className="space-y-0.5">
                       <Label>Изменение статуса оборудования</Label>
                       <p className="text-sm text-muted-foreground">
-                        Уведомления об изменении статуса оборудования
+                        У��едомления об изменении статуса оборудования
                       </p>
                     </div>
                     <Switch defaultChecked />
