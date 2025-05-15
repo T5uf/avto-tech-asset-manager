@@ -9,6 +9,7 @@ import Catalog from "./pages/Catalog";
 import EquipmentDetail from "./pages/EquipmentDetail";
 import EquipmentForm from "./pages/EquipmentForm";
 import Storage from "./pages/Storage";
+import Reports from "./pages/Reports";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/add" element={<EquipmentForm />} />
           <Route path="/edit/:id" element={<EquipmentForm />} />
           <Route path="/storage" element={<Storage />} />
+          <Route path="/reports" element={<Reports />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
