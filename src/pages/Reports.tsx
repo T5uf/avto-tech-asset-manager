@@ -31,10 +31,14 @@ const Reports = () => {
   ];
 
   // Prepare data for category report
-  const categoryData = Object.values(EquipmentCategory).map(category => ({
-    name: getCategoryLabel(category),
-    value: mockEquipment.filter(item => item.category === category).length
-  }));
+  const categoryData = [
+    { name: getCategoryLabel("computer"), value: mockEquipment.filter(item => item.category === "computer").length },
+    { name: getCategoryLabel("printer"), value: mockEquipment.filter(item => item.category === "printer").length },
+    { name: getCategoryLabel("network"), value: mockEquipment.filter(item => item.category === "network").length },
+    { name: getCategoryLabel("peripheral"), value: mockEquipment.filter(item => item.category === "peripheral").length },
+    { name: getCategoryLabel("mobile"), value: mockEquipment.filter(item => item.category === "mobile").length },
+    { name: getCategoryLabel("other"), value: mockEquipment.filter(item => item.category === "other").length }
+  ];
 
   // Get the data based on the selected report type
   const getReportData = () => {
