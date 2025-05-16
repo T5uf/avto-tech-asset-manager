@@ -115,9 +115,15 @@ const UserDialog = ({
   }, [user, form, open]);
 
   const handleFormSubmit = (data: z.infer<typeof userFormSchema>) => {
+    // Make sure to include all required fields from UserFormData
     onSubmit({
       ...data,
-      id: user?.id
+      id: user?.id,
+      name: data.name, // Explicitly include name to ensure it's not optional
+      email: data.email,
+      role: data.role,
+      department: data.department,
+      isActive: data.isActive
     });
   };
 

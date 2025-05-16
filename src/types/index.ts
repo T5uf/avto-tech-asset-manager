@@ -25,6 +25,8 @@ export interface Equipment {
   description?: string;
   imageUrl?: string;
   history?: HistoryEntry[];
+  image?: string; // Added missing property
+  qrCode?: string; // Added missing property
 }
 
 export interface HistoryEntry {

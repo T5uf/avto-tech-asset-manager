@@ -4,7 +4,7 @@ import { ru } from "date-fns/locale";
 
 export type DateRange = {
   from: Date;
-  to: Date;
+  to?: Date; // Changed to optional to match react-day-picker's DateRange
 };
 
 export const formatDate = (date: Date, formatString = "dd.MM.yyyy") => {

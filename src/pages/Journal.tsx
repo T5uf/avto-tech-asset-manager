@@ -109,6 +109,11 @@ const Journal = () => {
     });
   };
 
+  // Fixed the typing issue by properly handling the type conversion
+  const handleDateRangeChange = (newDateRange: DateRange | undefined) => {
+    setDateRange(newDateRange);
+  };
+
   return (
     <Layout>
       <div className="space-y-6">
@@ -181,7 +186,7 @@ const Journal = () => {
                 <label className="text-sm font-medium mb-2 block">Период</label>
                 <DateRangePicker
                   date={dateRange}
-                  onDateChange={setDateRange}
+                  onDateChange={handleDateRangeChange} // Use our wrapper function
                 />
               </div>
             </div>
