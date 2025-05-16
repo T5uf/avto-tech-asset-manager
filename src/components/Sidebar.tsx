@@ -88,14 +88,17 @@ const Sidebar = () => {
     // Close the dialog
     setLogoutDialogOpen(false);
     
+    // Remove authentication from local storage
+    localStorage.removeItem("isAuthenticated");
+    
     // Show success toast
     toast({
       title: "Выход выполнен",
       description: "Вы успешно вышли из системы",
     });
     
-    // Navigate to login page (or main page in this case since we don't have login)
-    navigate("/");
+    // Navigate to login page
+    navigate("/login");
   };
 
   return (
