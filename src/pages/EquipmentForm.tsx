@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, Upload } from "lucide-react";
-import { getEquipmentById } from "@/utils/equipment";
+import { getEquipmentById, saveEquipment } from "@/utils/equipment";
 import { toast } from "@/components/ui/sonner";
 import { uploadFile, generateQRCode } from "@/utils/fileUpload";
 
@@ -92,16 +92,27 @@ const EquipmentForm = () => {
     e.preventDefault();
     
     try {
+      let imageUrl = imagePreview;
+      
       // Upload image if selected
       if (imageFile) {
         setIsUploading(true);
-        const imageUrl = await uploadFile(imageFile);
+        imageUrl = await uploadFile(imageFile);
         setIsUploading(false);
-        // In a real app, save the imageUrl to your form data
       }
       
-      // In a real app, here would be an API request
-      console.log("Form submitted:", { ...formData, image: imagePreview, qrCode });
+      // Prepare complete data with image and QR code
+      const completeEquipmentData = {
+        ...formData,
+        id: existingEquipment?.id || crypto.randomUUID(),
+        image: imageUrl,
+        qrCode: qrCode
+      };
+      
+      // Save equipment data
+      saveEquipment(completeEquipmentData);
+      
+      console.log("Form submitted:", completeEquipmentData);
       
       toast.success(
         isEditMode 
@@ -112,6 +123,7 @@ const EquipmentForm = () => {
       // Redirect after successful operation
       navigate(isEditMode ? `/equipment/${id}` : "/catalog");
     } catch (error) {
+      console.error("Error saving equipment:", error);
       toast.error("Произошла ошибка при сохранении");
     }
   };
