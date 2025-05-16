@@ -13,8 +13,7 @@ export const equipmentData: Equipment[] = [
     responsiblePerson: "Иванов И.И.",
     location: "Офис #203",
     description: "16GB RAM, 512GB SSD",
-    image: "/placeholder.svg",
-    qrCode: "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=equipment%2FPC-2023-001"
+    image: "/placeholder.svg"
   },
   {
     id: "2",
@@ -26,8 +25,7 @@ export const equipmentData: Equipment[] = [
     responsiblePerson: "Петров А.С.",
     location: "Бухгалтерия",
     description: "Двусторонняя печать, Ethernet",
-    image: "/placeholder.svg",
-    qrCode: "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=equipment%2FPR-2023-002"
+    image: "/placeholder.svg"
   },
   {
     id: "3",
@@ -39,8 +37,7 @@ export const equipmentData: Equipment[] = [
     responsiblePerson: "Сидоров В.К.",
     location: "Серверная комната",
     description: "24 порта, PoE",
-    image: "/placeholder.svg",
-    qrCode: "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=equipment%2FNW-2023-003"
+    image: "/placeholder.svg"
   },
   {
     id: "4",
@@ -52,8 +49,7 @@ export const equipmentData: Equipment[] = [
     responsiblePerson: "Кузнецова О.И.",
     location: "Склад",
     description: "128GB, Wi-Fi",
-    image: "/placeholder.svg",
-    qrCode: "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=equipment%2FMB-2023-004"
+    image: "/placeholder.svg"
   },
   {
     id: "5",
@@ -65,8 +61,7 @@ export const equipmentData: Equipment[] = [
     responsiblePerson: "Морозов П.Л.",
     location: "Офис #205",
     description: "Беспроводная мышь",
-    image: "/placeholder.svg",
-    qrCode: "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=equipment%2FPE-2023-005"
+    image: "/placeholder.svg"
   },
 ];
 
@@ -110,14 +105,14 @@ export const saveEquipment = (equipment: Equipment): void => {
     equipmentData[index] = {
       ...equipmentData[index],
       ...equipment,
-      // Make sure image and qrCode are included
-      image: equipment.image || equipmentData[index].image,
-      qrCode: equipment.qrCode || equipmentData[index].qrCode
+      // Keep default image
+      image: "/placeholder.svg"
     };
   } else {
     // Add new equipment
     equipmentData.push({
       ...equipment,
+      image: "/placeholder.svg",
       history: equipment.history || []
     });
   }
