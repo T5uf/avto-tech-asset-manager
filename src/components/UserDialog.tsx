@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { UserCog, UserPlus } from "lucide-react";
 import { 
@@ -14,6 +14,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { 
   Select, 
   SelectContent, 
@@ -21,6 +29,25 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+
+// Role management
+export const roles = [
+  "Администратор", 
+  "Техник", 
+  "Инвентаризатор", 
+  "Менеджер", 
+  "Пользователь"
+];
+
+export const departments = [
+  "ИТ отдел", 
+  "Бухгалтерия", 
+  "Руководство", 
+  "Отдел продаж", 
+  "Другое"
+];
 
 export type UserFormData = {
   id?: number;
@@ -30,6 +57,15 @@ export type UserFormData = {
   department: string;
   isActive: boolean;
 };
+
+// Form validation schema
+const userFormSchema = z.object({
+  name: z.string().min(2, { message: "Имя должно содержать минимум 2 символа" }),
+  email: z.string().email({ message: "Введите корректный email адрес" }),
+  role: z.string().min(1, { message: "Выберите роль" }),
+  department: z.string().min(1, { message: "Выберите отдел" }),
+  isActive: z.boolean().default(true),
+});
 
 interface UserDialogProps {
   open: boolean;
@@ -46,31 +82,44 @@ const UserDialog = ({
   user,
   mode
 }: UserDialogProps) => {
-  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<UserFormData>({
-    defaultValues: user || {
-      name: "",
-      email: "",
-      role: "Пользователь",
-      department: "",
-      isActive: true,
+  const form = useForm<z.infer<typeof userFormSchema>>({
+    resolver: zodResolver(userFormSchema),
+    defaultValues: {
+      name: user?.name || "",
+      email: user?.email || "",
+      role: user?.role || "Пользователь",
+      department: user?.department || "",
+      isActive: user?.isActive !== undefined ? user.isActive : true,
     }
   });
 
-  // Set form values when user prop changes
-  React.useEffect(() => {
+  // Update form when user prop changes
+  useEffect(() => {
     if (user) {
-      setValue("name", user.name);
-      setValue("email", user.email);
-      setValue("role", user.role);
-      setValue("department", user.department);
-      setValue("isActive", user.isActive);
+      form.reset({
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        department: user.department,
+        isActive: user.isActive
+      });
+    } else {
+      form.reset({
+        name: "",
+        email: "",
+        role: "Пользователь",
+        department: "",
+        isActive: true
+      });
     }
-  }, [user, setValue]);
+  }, [user, form, open]);
 
-  const isActive = watch("isActive");
-
-  const roles = ["Администратор", "Техник", "Инвентаризатор", "Менеджер", "Пользователь"];
-  const departments = ["ИТ отдел", "Бухгалтерия", "Руководство", "Отдел продаж", "Другое"];
+  const handleFormSubmit = (data: z.infer<typeof userFormSchema>) => {
+    onSubmit({
+      ...data,
+      id: user?.id
+    });
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -95,91 +144,125 @@ const UserDialog = ({
               : "Внесите необходимые изменения"}
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="name">Имя пользователя</Label>
-              <Input
-                id="name"
-                {...register("name", { required: "Имя обязательно" })}
-                placeholder="Иванов Иван"
-              />
-              {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
-            </div>
 
-            <div className="grid gap-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                {...register("email", { 
-                  required: "Email обязателен",
-                  pattern: {
-                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                    message: "Неверный формат email"
-                  }
-                })}
-                placeholder="ivanov@example.com"
-              />
-              {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
-            </div>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Имя пользователя</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Иванов Иван" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-            <div className="grid gap-2">
-              <Label htmlFor="role">Роль</Label>
-              <Select 
-                defaultValue={user?.role || "Пользователь"}
-                onValueChange={(value) => setValue("role", value)}
-              >
-                <SelectTrigger id="role">
-                  <SelectValue placeholder="Выберите роль" />
-                </SelectTrigger>
-                <SelectContent>
-                  {roles.map(role => (
-                    <SelectItem key={role} value={role}>
-                      {role}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl>
+                    <Input type="email" placeholder="ivanov@example.com" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-            <div className="grid gap-2">
-              <Label htmlFor="department">Отдел</Label>
-              <Select 
-                defaultValue={user?.department || ""}
-                onValueChange={(value) => setValue("department", value)}
-              >
-                <SelectTrigger id="department">
-                  <SelectValue placeholder="Выберите отдел" />
-                </SelectTrigger>
-                <SelectContent>
-                  {departments.map(dept => (
-                    <SelectItem key={dept} value={dept}>
-                      {dept}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <FormField
+              control={form.control}
+              name="role"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Роль</FormLabel>
+                  <Select 
+                    onValueChange={field.onChange} 
+                    defaultValue={field.value}
+                    value={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Выберите роль" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {roles.map(role => (
+                        <SelectItem key={role} value={role}>
+                          {role}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-            <div className="flex items-center space-x-2">
-              <Checkbox 
-                id="isActive" 
-                checked={isActive}
-                onCheckedChange={(checked) => setValue("isActive", !!checked)} 
-              />
-              <Label htmlFor="isActive">Активный пользователь</Label>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Отмена
-            </Button>
-            <Button type="submit">
-              {mode === "add" ? "Добавить" : "Сохранить"}
-            </Button>
-          </DialogFooter>
-        </form>
+            <FormField
+              control={form.control}
+              name="department"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Отдел</FormLabel>
+                  <Select 
+                    onValueChange={field.onChange} 
+                    defaultValue={field.value}
+                    value={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Выберите отдел" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {departments.map(dept => (
+                        <SelectItem key={dept} value={dept}>
+                          {dept}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="isActive"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md p-4">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>
+                      Активный пользователь
+                    </FormLabel>
+                  </div>
+                </FormItem>
+              )}
+            />
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                Отмена
+              </Button>
+              <Button type="submit">
+                {mode === "add" ? "Добавить" : "Сохранить"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

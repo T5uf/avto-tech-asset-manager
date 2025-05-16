@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
@@ -15,19 +15,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Upload } from "lucide-react";
 import { getEquipmentById } from "@/utils/equipment";
 import { toast } from "@/components/ui/sonner";
+import { uploadFile, generateQRCode } from "@/utils/fileUpload";
 
 const EquipmentForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const isEditMode = !!id;
   
-  // Получаем данные оборудования, если это режим редактирования
+  // Get equipment data if in edit mode
   const existingEquipment = isEditMode ? getEquipmentById(id) : null;
   
-  // Состояние формы
+  // Form state
   const [formData, setFormData] = useState({
     name: existingEquipment?.name || "",
     inventoryNumber: existingEquipment?.inventoryNumber || "",
@@ -39,7 +40,46 @@ const EquipmentForm = () => {
     description: existingEquipment?.description || ""
   });
   
-  // Обработка изменения полей формы
+  // Image upload state
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(existingEquipment?.image || null);
+  const [isUploading, setIsUploading] = useState(false);
+  
+  // QR code state
+  const [qrCode, setQrCode] = useState<string | null>(existingEquipment?.qrCode || null);
+  const [isGeneratingQR, setIsGeneratingQR] = useState(false);
+  
+  // Handle image file selection
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files[0]) {
+      const file = files[0];
+      if (file.type.startsWith('image/')) {
+        setImageFile(file);
+        setImagePreview(URL.createObjectURL(file));
+      } else {
+        toast.error("Выбранный файл не является изображением");
+      }
+    }
+  };
+  
+  // Generate QR code when inventory number changes
+  useEffect(() => {
+    if (formData.inventoryNumber) {
+      setIsGeneratingQR(true);
+      generateQRCode(`equipment/${formData.inventoryNumber}`)
+        .then(url => {
+          setQrCode(url);
+          setIsGeneratingQR(false);
+        })
+        .catch(() => {
+          setIsGeneratingQR(false);
+          toast.error("Не удалось сгенерировать QR-код");
+        });
+    }
+  }, [formData.inventoryNumber]);
+  
+  // Handle form field changes
   const handleChange = (field: string, value: string) => {
     setFormData({
       ...formData,
@@ -47,28 +87,39 @@ const EquipmentForm = () => {
     });
   };
   
-  // Обработка отправки формы
-  const handleSubmit = (e: React.FormEvent) => {
+  // Handle form submission
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // В реальном приложении здесь был бы API-запрос
-    console.log("Форма отправлена:", formData);
-    
-    // Уведомление об успешной операции
-    toast.success(
-      isEditMode 
-        ? "Информация об оборудовании успешно обновлена" 
-        : "Оборудование успешно добавлено"
-    );
-    
-    // Перенаправление после успешной операции
-    navigate(isEditMode ? `/equipment/${id}` : "/catalog");
+    try {
+      // Upload image if selected
+      if (imageFile) {
+        setIsUploading(true);
+        const imageUrl = await uploadFile(imageFile);
+        setIsUploading(false);
+        // In a real app, save the imageUrl to your form data
+      }
+      
+      // In a real app, here would be an API request
+      console.log("Form submitted:", { ...formData, image: imagePreview, qrCode });
+      
+      toast.success(
+        isEditMode 
+          ? "Информация об оборудовании успешно обновлена" 
+          : "Оборудование успешно добавлено"
+      );
+      
+      // Redirect after successful operation
+      navigate(isEditMode ? `/equipment/${id}` : "/catalog");
+    } catch (error) {
+      toast.error("Произошла ошибка при сохранении");
+    }
   };
 
   return (
     <Layout>
       <div className="space-y-6">
-        {/* Навигация и заголовок */}
+        {/* Navigation and title */}
         <div className="flex items-center space-x-2">
           <Button variant="outline" size="icon" onClick={() => navigate(-1)}>
             <ArrowLeft className="h-4 w-4" />
@@ -85,7 +136,7 @@ const EquipmentForm = () => {
           </div>
         </div>
 
-        {/* Форма */}
+        {/* Form */}
         <form onSubmit={handleSubmit}>
           <div className="grid md:grid-cols-2 gap-6">
             <Card>
@@ -209,52 +260,82 @@ const EquipmentForm = () => {
               <CardContent className="space-y-4">
                 <div className="form-group">
                   <Label htmlFor="image">Фотография оборудования</Label>
-                  <div className="mt-1 border-2 border-dashed border-gray-200 rounded-lg p-6 text-center">
-                    <div className="flex flex-col items-center justify-center space-y-2">
-                      <div className="text-gray-500">
-                        <svg 
-                          className="mx-auto h-12 w-12"
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
+                  <div 
+                    className={`mt-1 border-2 border-dashed ${imagePreview ? 'border-primary' : 'border-gray-200'} rounded-lg p-6 text-center`}
+                  >
+                    {imagePreview ? (
+                      <div className="space-y-4">
+                        <img 
+                          src={imagePreview} 
+                          alt="Equipment preview" 
+                          className="mx-auto h-40 object-contain rounded-md"
+                        />
+                        <Button
+                          type="button" 
+                          variant="outline"
+                          onClick={() => {
+                            setImageFile(null);
+                            setImagePreview(null);
+                          }}
+                          className="mt-2"
                         >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={1}
-                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                          />
-                        </svg>
+                          Удалить изображение
+                        </Button>
                       </div>
-                      <div className="flex text-sm text-gray-500">
-                        <label
-                          htmlFor="file-upload"
-                          className="relative cursor-pointer rounded-md font-medium text-primary hover:text-primary/90"
-                        >
-                          <span>Загрузить файл</span>
-                          <input id="file-upload" name="file-upload" type="file" className="sr-only" />
-                        </label>
-                        <p className="pl-1">или перетащите сюда</p>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center space-y-2">
+                        <div className="text-gray-500">
+                          <Upload className="mx-auto h-12 w-12" />
+                        </div>
+                        <div className="flex text-sm text-gray-500">
+                          <label
+                            htmlFor="file-upload"
+                            className="relative cursor-pointer rounded-md font-medium text-primary hover:text-primary/90"
+                          >
+                            <span>Загрузить файл</span>
+                            <input 
+                              id="file-upload" 
+                              name="file-upload" 
+                              type="file" 
+                              className="sr-only" 
+                              accept="image/*"
+                              onChange={handleImageSelect}
+                              disabled={isUploading}
+                            />
+                          </label>
+                          <p className="pl-1">или перетащите сюда</p>
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          PNG, JPG до 10MB
+                        </p>
                       </div>
-                      <p className="text-xs text-gray-500">
-                        PNG, JPG до 10MB
-                      </p>
-                    </div>
+                    )}
                   </div>
                 </div>
 
                 <div>
                   <p className="text-sm font-medium mb-2">Автоматическая генерация QR-кода</p>
                   <p className="text-xs text-muted-foreground mb-4">
-                    QR-код будет автоматически сгенерирован после сохранения и будет содержать ссылку на карточку оборудования
+                    QR-код будет автоматически сгенерирован и будет содержать ссылку на карточку оборудования
                   </p>
                   <div className="border rounded-md p-4 flex items-center justify-center">
-                    <img 
-                      src="/placeholder.svg" 
-                      alt="QR Code Placeholder" 
-                      className="w-32 h-32 opacity-50"
-                    />
+                    {isGeneratingQR ? (
+                      <div className="w-32 h-32 flex items-center justify-center">
+                        <p className="text-sm text-muted-foreground">Генерация...</p>
+                      </div>
+                    ) : qrCode ? (
+                      <img 
+                        src={qrCode} 
+                        alt="QR Code" 
+                        className="w-32 h-32"
+                      />
+                    ) : (
+                      <img 
+                        src="/placeholder.svg" 
+                        alt="QR Code Placeholder" 
+                        className="w-32 h-32 opacity-50"
+                      />
+                    )}
                   </div>
                 </div>
               </CardContent>
@@ -262,7 +343,7 @@ const EquipmentForm = () => {
                 <Button variant="outline" onClick={() => navigate(-1)}>
                   Отмена
                 </Button>
-                <Button type="submit">
+                <Button type="submit" disabled={isUploading}>
                   {isEditMode ? "Сохранить изменения" : "Добавить оборудование"}
                 </Button>
               </CardFooter>

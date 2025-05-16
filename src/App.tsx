@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useState, useEffect } from "react";
+import { ThemeProvider } from "@/components/ThemeProvider";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Catalog from "./pages/Catalog";
@@ -49,26 +50,28 @@ const App = () => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-            <Route path="/catalog" element={<ProtectedRoute><Catalog /></ProtectedRoute>} />
-            <Route path="/equipment/:id" element={<ProtectedRoute><EquipmentDetail /></ProtectedRoute>} />
-            <Route path="/add" element={<ProtectedRoute><EquipmentForm /></ProtectedRoute>} />
-            <Route path="/edit/:id" element={<ProtectedRoute><EquipmentForm /></ProtectedRoute>} />
-            <Route path="/storage" element={<ProtectedRoute><Storage /></ProtectedRoute>} />
-            <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
-            <Route path="/journal" element={<ProtectedRoute><Journal /></ProtectedRoute>} />
-            <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-            <Route path="/users" element={<ProtectedRoute><Users /></ProtectedRoute>} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
+      <ThemeProvider defaultTheme="system">
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+              <Route path="/catalog" element={<ProtectedRoute><Catalog /></ProtectedRoute>} />
+              <Route path="/equipment/:id" element={<ProtectedRoute><EquipmentDetail /></ProtectedRoute>} />
+              <Route path="/add" element={<ProtectedRoute><EquipmentForm /></ProtectedRoute>} />
+              <Route path="/edit/:id" element={<ProtectedRoute><EquipmentForm /></ProtectedRoute>} />
+              <Route path="/storage" element={<ProtectedRoute><Storage /></ProtectedRoute>} />
+              <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+              <Route path="/journal" element={<ProtectedRoute><Journal /></ProtectedRoute>} />
+              <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+              <Route path="/users" element={<ProtectedRoute><Users /></ProtectedRoute>} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 };

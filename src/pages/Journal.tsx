@@ -5,10 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar as CalendarIcon, Search, FileDown } from "lucide-react";
+import { Search, FileDown } from "lucide-react";
 import { mockEquipment } from "@/utils/equipment";
+import { DateRangePicker } from "@/components/DateRangePicker";
+import { DateRange, formatDatetime } from "@/utils/dateUtils";
+import { toast } from "@/components/ui/sonner";
 
-// Имитация данных журнала действий
+// Mock journal entries
 const mockJournalEntries = [
   {
     id: 1,
@@ -55,9 +58,13 @@ const mockJournalEntries = [
 const Journal = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [actionFilter, setActionFilter] = useState("all");
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+  const [exportFormat, setExportFormat] = useState<"csv" | "excel" | "pdf">("csv");
   
-  // Фильтрация записей журнала
+  // Filter journal entries
   const filteredEntries = mockJournalEntries.filter(entry => {
+    const entryDate = new Date(entry.date);
+    
     const matchesSearch = 
       entry.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
       entry.user.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -65,21 +72,40 @@ const Journal = () => {
     
     const matchesAction = actionFilter === "all" || entry.action === actionFilter;
     
-    return matchesSearch && matchesAction;
+    const matchesDateRange = !dateRange || !dateRange.from || !dateRange.to || 
+      (entryDate >= dateRange.from && entryDate <= dateRange.to);
+    
+    return matchesSearch && matchesAction && matchesDateRange;
   });
 
-  // Получение уникальных типов действий для фильтра
+  // Get unique action types for filter
   const uniqueActions = [...new Set(mockJournalEntries.map(entry => entry.action))];
   
-  // Форматирование даты
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('ru-RU', {
-      day: '2-digit', 
-      month: '2-digit', 
-      year: 'numeric',
-      hour: '2-digit', 
-      minute: '2-digit'
+  // Handle journal export
+  const handleExportJournal = () => {
+    // In a real app, this would generate and download a file
+    // For demo purposes, we'll just show a toast message
+    
+    const rangeText = dateRange?.from && dateRange?.to
+      ? `за период ${formatDatetime(dateRange.from, "dd.MM.yyyy")} - ${formatDatetime(dateRange.to, "dd.MM.yyyy")}`
+      : "";
+    
+    const filterText = actionFilter !== "all"
+      ? `, тип: ${actionFilter}`
+      : "";
+    
+    toast.success(
+      `Журнал действий ${rangeText}${filterText} экспортирован в формате ${exportFormat.toUpperCase()}`,
+      {
+        description: `Всего записей: ${filteredEntries.length}`,
+      }
+    );
+    
+    console.log("Экспорт журнала", {
+      entries: filteredEntries,
+      format: exportFormat,
+      dateRange,
+      actionFilter
     });
   };
 
@@ -93,13 +119,24 @@ const Journal = () => {
               История действий пользователей в системе
             </p>
           </div>
-          <Button 
-            className="mt-4 md:mt-0" 
-            onClick={() => console.log("Экспорт журнала")}
-          >
-            <FileDown className="mr-2 h-4 w-4" />
-            Экспортировать журнал
-          </Button>
+          <div className="flex items-center gap-2 mt-4 md:mt-0">
+            <Select value={exportFormat} onValueChange={(value: "csv" | "excel" | "pdf") => setExportFormat(value)}>
+              <SelectTrigger className="w-[130px]">
+                <SelectValue placeholder="Формат" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="csv">CSV</SelectItem>
+                <SelectItem value="excel">Excel</SelectItem>
+                <SelectItem value="pdf">PDF</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button 
+              onClick={handleExportJournal}
+            >
+              <FileDown className="mr-2 h-4 w-4" />
+              Экспортировать
+            </Button>
+          </div>
         </div>
 
         <Card>
@@ -142,12 +179,10 @@ const Journal = () => {
               </div>
               <div>
                 <label className="text-sm font-medium mb-2 block">Период</label>
-                <div className="flex gap-2">
-                  <Button variant="outline" className="w-full">
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    Выбрать период
-                  </Button>
-                </div>
+                <DateRangePicker
+                  date={dateRange}
+                  onDateChange={setDateRange}
+                />
               </div>
             </div>
           </CardContent>
@@ -184,7 +219,9 @@ const Journal = () => {
                     filteredEntries.map((entry) => (
                       <tr key={entry.id}>
                         <td className="px-4 py-3 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{formatDate(entry.date)}</div>
+                          <div className="text-sm text-gray-900">
+                            {formatDatetime(new Date(entry.date))}
+                          </div>
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
                           <div className="text-sm font-medium text-gray-900">{entry.user}</div>
