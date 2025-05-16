@@ -1,7 +1,8 @@
+
 import { Equipment, EquipmentCategory, EquipmentStatus } from "@/types";
 
 // Mock database - in a real app this would be a backend API
-let equipmentData: Equipment[] = [
+export const equipmentData: Equipment[] = [
   {
     id: "1",
     name: "Lenovo ThinkPad X1",
@@ -69,6 +70,9 @@ let equipmentData: Equipment[] = [
   },
 ];
 
+// Alias for backward compatibility
+export const mockEquipment = equipmentData;
+
 export const getEquipmentList = (): Equipment[] => {
   return equipmentData;
 };
@@ -120,4 +124,112 @@ export const saveEquipment = (equipment: Equipment): void => {
   
   // In a real app, this would be an API call
   console.log("Equipment saved:", equipment);
+};
+
+// Status utilities
+export const getStatusColor = (status: EquipmentStatus): string => {
+  switch (status) {
+    case "active":
+      return "bg-green-100 text-green-800";
+    case "repair":
+      return "bg-yellow-100 text-yellow-800";
+    case "storage":
+      return "bg-blue-100 text-blue-800";
+    case "written-off":
+      return "bg-gray-100 text-gray-800";
+    default:
+      return "bg-gray-100 text-gray-800";
+  }
+};
+
+export const getStatusLabel = (status: EquipmentStatus): string => {
+  switch (status) {
+    case "active":
+      return "В работе";
+    case "repair":
+      return "На ремонте";
+    case "storage":
+      return "На складе";
+    case "written-off":
+      return "Списано";
+    default:
+      return "Неизвестно";
+  }
+};
+
+// Category utilities
+export const getCategoryLabel = (category: EquipmentCategory): string => {
+  switch (category) {
+    case "computer":
+      return "Компьютер";
+    case "printer":
+      return "Принтер";
+    case "network":
+      return "Сетевое оборудование";
+    case "peripheral":
+      return "Периферия";
+    case "mobile":
+      return "Мобильное устройство";
+    case "other":
+      return "Другое";
+    default:
+      return "Неизвестно";
+  }
+};
+
+// Import necessary icons for the category icons function
+import { Computer, Printer, Network, Smartphone, Mouse, HelpCircle } from "lucide-react";
+
+export const getCategoryIcon = (category: EquipmentCategory): JSX.Element => {
+  switch (category) {
+    case "computer":
+      return <Computer className="h-4 w-4" />;
+    case "printer":
+      return <Printer className="h-4 w-4" />;
+    case "network":
+      return <Network className="h-4 w-4" />;
+    case "mobile":
+      return <Smartphone className="h-4 w-4" />;
+    case "peripheral":
+      return <Mouse className="h-4 w-4" />;
+    case "other":
+      return <HelpCircle className="h-4 w-4" />;
+    default:
+      return <HelpCircle className="h-4 w-4" />;
+  }
+};
+
+// Statistics utilities
+export const getEquipmentCounts = () => {
+  const active = equipmentData.filter(item => item.status === "active").length;
+  const repair = equipmentData.filter(item => item.status === "repair").length;
+  const storage = equipmentData.filter(item => item.status === "storage").length;
+  const writtenOff = equipmentData.filter(item => item.status === "written-off").length;
+  const total = equipmentData.length;
+
+  return {
+    active,
+    repair,
+    storage,
+    writtenOff,
+    total
+  };
+};
+
+export const getCategoryCounts = () => {
+  const computer = equipmentData.filter(item => item.category === "computer").length;
+  const printer = equipmentData.filter(item => item.category === "printer").length;
+  const network = equipmentData.filter(item => item.category === "network").length;
+  const peripheral = equipmentData.filter(item => item.category === "peripheral").length;
+  const mobile = equipmentData.filter(item => item.category === "mobile").length;
+  const other = equipmentData.filter(item => item.category === "other").length;
+
+  return {
+    computer,
+    printer,
+    network,
+    peripheral,
+    mobile,
+    other
+  };
 };
