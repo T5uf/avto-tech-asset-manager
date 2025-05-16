@@ -1,5 +1,5 @@
-
 import { Equipment, EquipmentCategory, EquipmentStatus } from "@/types";
+import { getCategoryIcon } from "@/components/CategoryIcon";
 
 // Mock database - in a real app this would be a backend API
 export const equipmentData: Equipment[] = [
@@ -177,27 +177,8 @@ export const getCategoryLabel = (category: EquipmentCategory): string => {
   }
 };
 
-// Import necessary icons for the category icons function
-import { Computer, Printer, Network, Smartphone, Mouse, HelpCircle } from "lucide-react";
-
-export const getCategoryIcon = (category: EquipmentCategory): JSX.Element => {
-  switch (category) {
-    case "computer":
-      return <Computer className="h-4 w-4" />;
-    case "printer":
-      return <Printer className="h-4 w-4" />;
-    case "network":
-      return <Network className="h-4 w-4" />;
-    case "mobile":
-      return <Smartphone className="h-4 w-4" />;
-    case "peripheral":
-      return <Mouse className="h-4 w-4" />;
-    case "other":
-      return <HelpCircle className="h-4 w-4" />;
-    default:
-      return <HelpCircle className="h-4 w-4" />;
-  }
-};
+// Re-export the getCategoryIcon function
+export { getCategoryIcon };
 
 // Statistics utilities
 export const getEquipmentCounts = () => {
