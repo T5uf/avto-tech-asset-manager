@@ -78,7 +78,7 @@ const EquipmentDetail = () => {
           
           {/* Основная информация */}
           <TabsContent value="general">
-            <div className="grid md:grid-cols-2 gap-6">
+            <div className="grid md:grid-cols-1 gap-6">
               <Card>
                 <CardHeader>
                   <CardTitle>Основная информация</CardTitle>
@@ -126,32 +126,6 @@ const EquipmentDetail = () => {
                         <p className="text-sm">{equipment.description}</p>
                       </div>
                     )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Изображение оборудования</CardTitle>
-                  <CardDescription>Фотография устройства</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="rounded-md overflow-hidden border border-gray-200">
-                    <img 
-                      src={equipment.imageUrl || "/placeholder.svg"} 
-                      alt={equipment.name}
-                      className="w-full h-64 object-cover"
-                    />
-                  </div>
-                  <div className="mt-4">
-                    <p className="text-sm font-medium text-muted-foreground mb-1">QR-код</p>
-                    <div className="border rounded-md p-4 flex items-center justify-center">
-                      <img 
-                        src="/placeholder.svg" 
-                        alt="QR Code" 
-                        className="w-32 h-32"
-                      />
-                    </div>
                   </div>
                 </CardContent>
               </Card>
