@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
@@ -16,30 +16,55 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft } from "lucide-react";
-import { getEquipmentById, saveEquipment } from "@/utils/equipment";
+import { saveEquipmentToDb, fetchEquipmentById } from "@/services/equipmentService";
 import { toast } from "@/components/ui/sonner";
+import { useQuery } from "@tanstack/react-query";
 
 const EquipmentForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const isEditMode = !!id;
   
-  // Get equipment data if in edit mode
-  const existingEquipment = isEditMode ? getEquipmentById(id) : null;
-  
-  // Form state
-  const [formData, setFormData] = useState({
-    name: existingEquipment?.name || "",
-    inventoryNumber: existingEquipment?.inventoryNumber || "",
-    category: existingEquipment?.category || "computer",
-    status: existingEquipment?.status || "active",
-    purchaseDate: existingEquipment?.purchaseDate || new Date().toISOString().split('T')[0],
-    responsiblePerson: existingEquipment?.responsiblePerson || "",
-    location: existingEquipment?.location || "",
-    description: existingEquipment?.description || ""
+  // Используем React Query для получения данных оборудования при редактировании
+  const { 
+    data: existingEquipment, 
+    isLoading,
+    isError
+  } = useQuery({
+    queryKey: ['equipment', id],
+    queryFn: () => fetchEquipmentById(id || ""),
+    enabled: isEditMode
   });
   
-  // Handle form field changes
+  // Форма состояния
+  const [formData, setFormData] = useState({
+    name: "",
+    inventoryNumber: "",
+    category: "computer",
+    status: "active",
+    purchaseDate: new Date().toISOString().split('T')[0],
+    responsiblePerson: "",
+    location: "",
+    description: ""
+  });
+  
+  // Обновление формы при получении данных
+  useEffect(() => {
+    if (existingEquipment) {
+      setFormData({
+        name: existingEquipment.name || "",
+        inventoryNumber: existingEquipment.inventoryNumber || "",
+        category: existingEquipment.category || "computer",
+        status: existingEquipment.status || "active",
+        purchaseDate: existingEquipment.purchaseDate || new Date().toISOString().split('T')[0],
+        responsiblePerson: existingEquipment.responsiblePerson || "",
+        location: existingEquipment.location || "",
+        description: existingEquipment.description || ""
+      });
+    }
+  }, [existingEquipment]);
+  
+  // Обработка изменений полей формы
   const handleChange = (field: string, value: string) => {
     setFormData({
       ...formData,
@@ -47,23 +72,26 @@ const EquipmentForm = () => {
     });
   };
   
-  // Handle form submission
+  // Обработка отправки формы
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     try {
-      // Prepare complete data
-      const completeEquipmentData = {
-        ...formData,
-        id: existingEquipment?.id || crypto.randomUUID(),
-        // Set default placeholder for image
-        image: "/placeholder.svg"
+      // Подготовка данных для сохранения
+      const equipmentData = {
+        id: isEditMode ? id : undefined,
+        name: formData.name,
+        inventoryNumber: formData.inventoryNumber,
+        category: formData.category,
+        status: formData.status,
+        purchaseDate: formData.purchaseDate,
+        responsiblePerson: formData.responsiblePerson,
+        location: formData.location,
+        description: formData.description,
       };
       
-      // Save equipment data
-      saveEquipment(completeEquipmentData);
-      
-      console.log("Form submitted:", completeEquipmentData);
+      // Сохранение данных оборудования
+      await saveEquipmentToDb(equipmentData);
       
       toast.success(
         isEditMode 
@@ -71,7 +99,7 @@ const EquipmentForm = () => {
           : "Оборудование успешно добавлено"
       );
       
-      // Redirect after successful operation
+      // Перенаправление после успешной операции
       navigate(isEditMode ? `/equipment/${id}` : "/catalog");
     } catch (error) {
       console.error("Error saving equipment:", error);
@@ -79,10 +107,33 @@ const EquipmentForm = () => {
     }
   };
 
+  // Показываем индикатор загрузки при получении данных
+  if (isEditMode && isLoading) {
+    return (
+      <Layout>
+        <div className="flex justify-center py-8">
+          <p>Загрузка данных...</p>
+        </div>
+      </Layout>
+    );
+  }
+
+  // Показываем сообщение об ошибке
+  if (isEditMode && isError) {
+    return (
+      <Layout>
+        <div className="flex flex-col items-center justify-center py-8">
+          <p className="text-red-500 mb-4">Ошибка загрузки данных оборудования</p>
+          <Button onClick={() => navigate("/catalog")}>Вернуться к каталогу</Button>
+        </div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
       <div className="space-y-6">
-        {/* Navigation and title */}
+        {/* Навигация и заголовок */}
         <div className="flex items-center space-x-2">
           <Button variant="outline" size="icon" onClick={() => navigate(-1)}>
             <ArrowLeft className="h-4 w-4" />
@@ -99,7 +150,7 @@ const EquipmentForm = () => {
           </div>
         </div>
 
-        {/* Form */}
+        {/* Форма */}
         <form onSubmit={handleSubmit}>
           <Card className="lg:max-w-2xl">
             <CardHeader>
