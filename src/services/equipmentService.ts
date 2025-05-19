@@ -22,6 +22,12 @@ export const fetchAllEquipment = async (): Promise<Equipment[]> => {
 
 // Получение оборудования по ID
 export const fetchEquipmentById = async (id: string): Promise<Equipment | null> => {
+  // Проверяем, имеет ли ID формат UUID
+  if (!isValidUuid(id)) {
+    console.error(`Invalid UUID format for equipment ID: ${id}`);
+    return null;
+  }
+
   const { data, error } = await supabase
     .from('equipment')
     .select(`
@@ -39,6 +45,12 @@ export const fetchEquipmentById = async (id: string): Promise<Equipment | null> 
 
   return mapDbEquipmentToModel(data);
 };
+
+// Функция для проверки валидности UUID
+function isValidUuid(id: string): boolean {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(id);
+}
 
 // Получение отфильтрованного оборудования
 export const fetchFilteredEquipment = async (
@@ -130,7 +142,7 @@ export const saveEquipmentToDb = async (equipment: Partial<Equipment>): Promise<
 
     let result;
 
-    if (equipment.id) {
+    if (equipment.id && isValidUuid(equipment.id)) {
       // Обновление существующего оборудования
       const { data, error } = await supabase
         .from('equipment')
@@ -186,6 +198,12 @@ export const saveEquipmentToDb = async (equipment: Partial<Equipment>): Promise<
 
 // Получение истории оборудования
 export const fetchEquipmentHistory = async (equipmentId: string) => {
+  // Проверяем, имеет ли ID формат UUID
+  if (!isValidUuid(equipmentId)) {
+    console.error(`Invalid UUID format for equipment ID: ${equipmentId}`);
+    return [];
+  }
+  
   const { data, error } = await supabase
     .from('equipment_history')
     .select('*')
@@ -207,6 +225,11 @@ export const addHistoryEntry = async (
   description: string,
   performedBy: string
 ) => {
+  if (!isValidUuid(equipmentId)) {
+    console.error(`Invalid UUID format for equipment ID: ${equipmentId}`);
+    return null;
+  }
+  
   const { data, error } = await supabase
     .from('equipment_history')
     .insert({

@@ -16,9 +16,18 @@ import { Equipment } from "@/types";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "@/components/ui/sonner";
 
+// Функция для проверки валидности UUID
+function isValidUuid(id: string): boolean {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(id);
+}
+
 const EquipmentDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  
+  // Проверяем валидность ID перед запросом
+  const isValidId = id && isValidUuid(id);
   
   // Используем React Query для получения оборудования
   const { 
@@ -28,7 +37,7 @@ const EquipmentDetail = () => {
   } = useQuery({
     queryKey: ['equipment', id],
     queryFn: () => fetchEquipmentById(id || ""),
-    enabled: !!id
+    enabled: !!isValidId
   });
   
   // Используем React Query для получения истории оборудования
@@ -38,8 +47,16 @@ const EquipmentDetail = () => {
   } = useQuery({
     queryKey: ['equipment-history', id],
     queryFn: () => fetchEquipmentHistory(id || ""),
-    enabled: !!id
+    enabled: !!isValidId
   });
+
+  // Показываем сообщение об ошибке при неверном формате ID
+  useEffect(() => {
+    if (id && !isValidId) {
+      toast.error("Неверный формат ID оборудования");
+      navigate("/catalog");
+    }
+  }, [id, isValidId, navigate]);
 
   // Показываем сообщение об ошибке
   useEffect(() => {

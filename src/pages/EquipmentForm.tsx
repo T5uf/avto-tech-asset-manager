@@ -92,7 +92,7 @@ const EquipmentForm = () => {
       };
       
       // Сохранение данных оборудования
-      await saveEquipmentToDb(equipmentData);
+      const savedEquipment = await saveEquipmentToDb(equipmentData);
       
       toast.success(
         isEditMode 
@@ -101,7 +101,7 @@ const EquipmentForm = () => {
       );
       
       // Перенаправление после успешной операции
-      navigate(isEditMode ? `/equipment/${id}` : "/catalog");
+      navigate(isEditMode ? `/equipment/${savedEquipment.id}` : "/catalog");
     } catch (error) {
       console.error("Error saving equipment:", error);
       toast.error("Произошла ошибка при сохранении");
