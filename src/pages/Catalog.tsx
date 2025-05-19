@@ -1,15 +1,18 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { useNavigate } from "react-router-dom";
-import { mockEquipment, getCategoryLabel, getStatusLabel } from "@/utils/equipment";
+import { getCategoryLabel, getStatusLabel } from "@/utils/equipment";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { HardDrive, Search, Filter } from "lucide-react";
+import { HardDrive, Search, Filter, Loader2 } from "lucide-react";
 import StatusBadge from "@/components/StatusBadge";
 import { EquipmentCategory, EquipmentStatus } from "@/types";
+import { fetchAllEquipment, fetchFilteredEquipment } from "@/services/equipmentService";
+import { useQuery } from "@tanstack/react-query";
+import { toast } from "@/components/ui/sonner";
 
 const Catalog = () => {
   const navigate = useNavigate();
@@ -17,22 +20,33 @@ const Catalog = () => {
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
 
-  // Фильтрация оборудования
-  const filteredEquipment = mockEquipment.filter(equipment => {
-    // Поиск
-    const searchMatch = equipment.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        equipment.inventoryNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        equipment.responsiblePerson.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        equipment.location.toLowerCase().includes(searchTerm.toLowerCase());
-
-    // Категория
-    const categoryMatch = categoryFilter ? equipment.category === categoryFilter : true;
-
-    // Статус
-    const statusMatch = statusFilter ? equipment.status === statusFilter : true;
-
-    return searchMatch && categoryMatch && statusMatch;
+  // Загрузка оборудования с помощью React Query
+  const { 
+    data: equipment = [], 
+    isLoading, 
+    isError,
+    refetch
+  } = useQuery({
+    queryKey: ['equipment', searchTerm, categoryFilter, statusFilter],
+    queryFn: () => {
+      if (!searchTerm && !categoryFilter && !statusFilter) {
+        return fetchAllEquipment();
+      } else {
+        return fetchFilteredEquipment(
+          searchTerm, 
+          categoryFilter as EquipmentCategory | "all", 
+          statusFilter as EquipmentStatus | "all"
+        );
+      }
+    }
   });
+
+  // Обработка ошибок загрузки
+  useEffect(() => {
+    if (isError) {
+      toast.error("Ошибка при загрузке данных оборудования");
+    }
+  }, [isError]);
 
   const clearFilters = () => {
     setSearchTerm("");
@@ -77,7 +91,7 @@ const Catalog = () => {
               </div>
               <Select 
                 value={categoryFilter ?? ""} 
-                onValueChange={(value) => setCategoryFilter(value || null)}
+                onValueChange={(value) => setCategoryFilter(value === "all" ? null : value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Все категории" />
@@ -94,7 +108,7 @@ const Catalog = () => {
               </Select>
               <Select 
                 value={statusFilter ?? ""} 
-                onValueChange={(value) => setStatusFilter(value || null)}
+                onValueChange={(value) => setStatusFilter(value === "all" ? null : value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Все статусы" />
@@ -120,13 +134,18 @@ const Catalog = () => {
             <CardTitle>
               <div className="flex items-center">
                 <HardDrive className="h-5 w-5 mr-2" />
-                <span>Оборудование ({filteredEquipment.length})</span>
+                <span>Оборудование ({equipment.length})</span>
               </div>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="table-container">
-              {filteredEquipment.length > 0 ? (
+              {isLoading ? (
+                <div className="py-10 text-center">
+                  <Loader2 className="h-8 w-8 mx-auto animate-spin text-muted-foreground" />
+                  <p className="mt-2 text-muted-foreground">Загрузка данных...</p>
+                </div>
+              ) : equipment.length > 0 ? (
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
@@ -151,7 +170,7 @@ const Catalog = () => {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredEquipment.map((item) => (
+                    {equipment.map((item) => (
                       <tr 
                         key={item.id} 
                         className="hover:bg-gray-50 cursor-pointer"

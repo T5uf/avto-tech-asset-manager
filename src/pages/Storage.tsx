@@ -5,33 +5,37 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { HardDrive, Package, Search, Filter } from "lucide-react";
-import { mockEquipment, getCategoryLabel } from "@/utils/equipment";
+import { HardDrive, Package, Search, Filter, Loader2 } from "lucide-react";
+import { getCategoryLabel } from "@/utils/equipment";
 import StatusBadge from "@/components/StatusBadge";
-import { EquipmentStatus } from "@/types";
+import { EquipmentCategory, EquipmentStatus } from "@/types";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { fetchFilteredEquipment } from "@/services/equipmentService";
+import { toast } from "@/components/ui/sonner";
 
 const Storage = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
 
-  // Фильтрация только оборудования на складе
-  const storageEquipment = mockEquipment.filter(equipment => {
-    // Базовая фильтрация по статусу "на складе"
-    const statusMatch = equipment.status === "storage";
-
-    // Поиск
-    const searchMatch = searchTerm ? 
-      equipment.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      equipment.inventoryNumber.toLowerCase().includes(searchTerm.toLowerCase()) :
-      true;
-
-    // Категория
-    const categoryMatch = categoryFilter ? equipment.category === categoryFilter : true;
-
-    return statusMatch && searchMatch && categoryMatch;
+  // Загрузка оборудования на складе с помощью React Query
+  const { 
+    data: equipment = [], 
+    isLoading, 
+    isError
+  } = useQuery({
+    queryKey: ['storage-equipment', searchTerm, categoryFilter],
+    queryFn: () => fetchFilteredEquipment(searchTerm, 
+      categoryFilter as EquipmentCategory | "all", 
+      "storage" as EquipmentStatus
+    )
   });
+
+  // Обработка ошибок загрузки
+  if (isError) {
+    toast.error("Ошибка при загрузке данных со склада");
+  }
 
   const clearFilters = () => {
     setSearchTerm("");
@@ -76,7 +80,7 @@ const Storage = () => {
               </div>
               <Select 
                 value={categoryFilter ?? ""} 
-                onValueChange={(value) => setCategoryFilter(value || null)}
+                onValueChange={(value) => setCategoryFilter(value === "all" ? null : value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Все категории" />
@@ -104,12 +108,17 @@ const Storage = () => {
             <CardTitle>
               <div className="flex items-center">
                 <Package className="h-5 w-5 mr-2" />
-                <span>Оборудование на складе ({storageEquipment.length})</span>
+                <span>Оборудование на складе ({equipment.length})</span>
               </div>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {storageEquipment.length > 0 ? (
+            {isLoading ? (
+              <div className="py-10 text-center">
+                <Loader2 className="h-8 w-8 mx-auto animate-spin text-muted-foreground" />
+                <p className="mt-2 text-muted-foreground">Загрузка данных...</p>
+              </div>
+            ) : equipment.length > 0 ? (
               <div className="table-container">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
@@ -135,7 +144,7 @@ const Storage = () => {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {storageEquipment.map((item) => (
+                    {equipment.map((item) => (
                       <tr 
                         key={item.id} 
                         className="hover:bg-gray-50"
@@ -156,10 +165,7 @@ const Storage = () => {
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
                           <div className="text-sm text-gray-500">
-                            {item.history && item.history.length > 0
-                              ? new Date(item.history[item.history.length - 1].date).toLocaleDateString('ru-RU')
-                              : new Date(item.purchaseDate).toLocaleDateString('ru-RU')
-                            }
+                            {new Date(item.purchaseDate).toLocaleDateString('ru-RU')}
                           </div>
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
