@@ -19,6 +19,7 @@ import { ArrowLeft } from "lucide-react";
 import { saveEquipmentToDb, fetchEquipmentById } from "@/services/equipmentService";
 import { toast } from "@/components/ui/sonner";
 import { useQuery } from "@tanstack/react-query";
+import { EquipmentCategory, EquipmentStatus } from "@/types";
 
 const EquipmentForm = () => {
   const { id } = useParams();
@@ -40,8 +41,8 @@ const EquipmentForm = () => {
   const [formData, setFormData] = useState({
     name: "",
     inventoryNumber: "",
-    category: "computer",
-    status: "active",
+    category: "computer" as EquipmentCategory,
+    status: "active" as EquipmentStatus,
     purchaseDate: new Date().toISOString().split('T')[0],
     responsiblePerson: "",
     location: "",
@@ -54,8 +55,8 @@ const EquipmentForm = () => {
       setFormData({
         name: existingEquipment.name || "",
         inventoryNumber: existingEquipment.inventoryNumber || "",
-        category: existingEquipment.category || "computer",
-        status: existingEquipment.status || "active",
+        category: existingEquipment.category || "computer" as EquipmentCategory,
+        status: existingEquipment.status || "active" as EquipmentStatus,
         purchaseDate: existingEquipment.purchaseDate || new Date().toISOString().split('T')[0],
         responsiblePerson: existingEquipment.responsiblePerson || "",
         location: existingEquipment.location || "",
@@ -82,8 +83,8 @@ const EquipmentForm = () => {
         id: isEditMode ? id : undefined,
         name: formData.name,
         inventoryNumber: formData.inventoryNumber,
-        category: formData.category,
-        status: formData.status,
+        category: formData.category as EquipmentCategory,
+        status: formData.status as EquipmentStatus,
         purchaseDate: formData.purchaseDate,
         responsiblePerson: formData.responsiblePerson,
         location: formData.location,
