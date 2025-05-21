@@ -275,6 +275,41 @@ export const fetchEquipmentHistory = async (equipmentId: string) => {
   }
 };
 
+// Добавление записи в историю
+export const addHistoryEntry = async (
+  equipmentId: string,
+  action: string,
+  description: string,
+  performedBy: string
+) => {
+  if (!isValidUuid(equipmentId)) {
+    console.error(`Invalid UUID format for equipment ID: ${equipmentId}`);
+    return null;
+  }
+  
+  try {
+    const { data, error } = await supabase
+      .from('equipment_history')
+      .insert({
+        equipment_id: equipmentId,
+        action,
+        description,
+        performed_by: performedBy
+      })
+      .select();
+
+    if (error) {
+      console.error("Error adding history entry:", error);
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    console.error("Failed to add history entry:", error);
+    return null;
+  }
+};
+
 // Вспомогательная функция для преобразования данных из БД в модель приложения
 function mapDbEquipmentToModel(dbEquipment: any): Equipment {
   if (!dbEquipment) return {} as Equipment;
@@ -383,34 +418,4 @@ export const getCategoryCounts = async () => {
     mobile: counts.find(c => c.category === 'mobile')?.count || 0,
     other: counts.find(c => c.category === 'other')?.count || 0
   };
-};
-
-// Добавление записи в историю
-export const addHistoryEntry = async (
-  equipmentId: string,
-  action: string,
-  description: string,
-  performedBy: string
-) => {
-  if (!isValidUuid(equipmentId)) {
-    console.error(`Invalid UUID format for equipment ID: ${equipmentId}`);
-    return null;
-  }
-  
-  const { data, error } = await supabase
-    .from('equipment_history')
-    .insert({
-      equipment_id: equipmentId,
-      action,
-      description,
-      performed_by: performedBy
-    })
-    .select();
-
-  if (error) {
-    console.error("Error adding history entry:", error);
-    throw error;
-  }
-
-  return data;
 };
