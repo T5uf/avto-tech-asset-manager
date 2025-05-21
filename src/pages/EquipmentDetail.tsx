@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -11,9 +10,9 @@ import { ArrowLeft, Edit, Trash2, AlertCircle, Loader2 } from "lucide-react";
 import StatusBadge from "@/components/StatusBadge";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
-import { fetchEquipmentById, fetchEquipmentHistory, isValidUuid } from "@/services/equipmentService";
+import { fetchEquipmentById, fetchEquipmentHistory, isValidUuid, deleteEquipment } from "@/services/equipmentService";
 import { Equipment } from "@/types";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/components/ui/sonner";
 import { 
   AlertDialog,
@@ -30,6 +29,8 @@ const EquipmentDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const queryClient = useQueryClient();
   
   // Проверяем валидность ID перед запросом
   const isValidId = id && isValidUuid(id);
@@ -112,11 +113,32 @@ const EquipmentDetail = () => {
     }
   };
 
-  const handleDelete = () => {
-    // Здесь будет реализация удаления оборудования
-    setShowDeleteDialog(false);
-    toast.success("Оборудование удалено");
-    navigate("/catalog");
+  const handleDelete = async () => {
+    if (!id) return;
+    
+    setIsDeleting(true);
+    
+    try {
+      const success = await deleteEquipment(id);
+      
+      if (success) {
+        // Инвалидируем кэш React Query
+        queryClient.invalidateQueries({ queryKey: ['all-equipment'] });
+        queryClient.invalidateQueries({ queryKey: ['equipment-counts'] });
+        queryClient.invalidateQueries({ queryKey: ['category-counts'] });
+        
+        toast.success("Оборудование успешно удалено");
+        navigate("/catalog");
+      } else {
+        toast.error("Не удалось удалить оборудование");
+      }
+    } catch (error) {
+      console.error("Error deleting equipment:", error);
+      toast.error("Произошла ошибка при удалении оборудования");
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteDialog(false);
+    }
   };
 
   return (
@@ -296,9 +318,20 @@ const EquipmentDetail = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Отмена</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
-              Удалить
+            <AlertDialogCancel disabled={isDeleting}>Отмена</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDelete} 
+              className="bg-red-600 hover:bg-red-700"
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Удаление...
+                </>
+              ) : (
+                'Удалить'
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

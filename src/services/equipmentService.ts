@@ -210,6 +210,44 @@ export const saveEquipmentToDb = async (equipment: Partial<Equipment>): Promise<
   }
 };
 
+// Удаление оборудования
+export const deleteEquipment = async (equipmentId: string): Promise<boolean> => {
+  // Проверяем, имеет ли ID формат UUID
+  if (!isValidUuid(equipmentId)) {
+    console.error(`Invalid UUID format for equipment ID: ${equipmentId}`);
+    return false;
+  }
+  
+  try {
+    // Сначала удаляем историю оборудования
+    const { error: historyError } = await supabase
+      .from('equipment_history')
+      .delete()
+      .eq('equipment_id', equipmentId);
+      
+    if (historyError) {
+      console.error(`Error deleting equipment history for ${equipmentId}:`, historyError);
+      throw historyError;
+    }
+    
+    // Затем удаляем само оборудование
+    const { error } = await supabase
+      .from('equipment')
+      .delete()
+      .eq('id', equipmentId);
+      
+    if (error) {
+      console.error(`Error deleting equipment with id ${equipmentId}:`, error);
+      throw error;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error(`Failed to delete equipment with id ${equipmentId}:`, error);
+    return false;
+  }
+};
+
 // Получение истории оборудования
 export const fetchEquipmentHistory = async (equipmentId: string) => {
   // Проверяем, имеет ли ID формат UUID
