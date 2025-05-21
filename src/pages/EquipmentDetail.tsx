@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { getCategoryLabel, getCategoryIcon } from "@/utils/equipment";
@@ -7,24 +7,29 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Edit, Trash2 } from "lucide-react";
+import { ArrowLeft, Edit, Trash2, AlertCircle, Loader2 } from "lucide-react";
 import StatusBadge from "@/components/StatusBadge";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
-import { fetchEquipmentById, fetchEquipmentHistory } from "@/services/equipmentService";
+import { fetchEquipmentById, fetchEquipmentHistory, isValidUuid } from "@/services/equipmentService";
 import { Equipment } from "@/types";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "@/components/ui/sonner";
-
-// Функция для проверки валидности UUID
-function isValidUuid(id: string): boolean {
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  return uuidRegex.test(id);
-}
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const EquipmentDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   
   // Проверяем валидность ID перед запросом
   const isValidId = id && isValidUuid(id);
@@ -33,56 +38,33 @@ const EquipmentDetail = () => {
   const { 
     data: equipment, 
     isLoading: isLoadingEquipment,
-    error: equipmentError
+    error: equipmentError,
+    isError: isEquipmentError
   } = useQuery({
     queryKey: ['equipment', id],
     queryFn: () => fetchEquipmentById(id || ""),
-    enabled: !!isValidId
+    enabled: !!isValidId,
+    refetchOnWindowFocus: false
   });
   
   // Используем React Query для получения истории оборудования
   const { 
-    data: history, 
+    data: history = [], 
     isLoading: isLoadingHistory 
   } = useQuery({
     queryKey: ['equipment-history', id],
     queryFn: () => fetchEquipmentHistory(id || ""),
-    enabled: !!isValidId
+    enabled: !!isValidId && !!equipment,
+    refetchOnWindowFocus: false
   });
 
   // Показываем сообщение об ошибке при неверном формате ID
-  useEffect(() => {
-    if (id && !isValidId) {
-      toast.error("Неверный формат ID оборудования");
-      navigate("/catalog");
-    }
-  }, [id, isValidId, navigate]);
-
-  // Показываем сообщение об ошибке
-  useEffect(() => {
-    if (equipmentError) {
-      toast.error("Не удалось загрузить данные об оборудовании");
-      console.error("Error loading equipment:", equipmentError);
-    }
-  }, [equipmentError]);
-
-  // Показываем индикатор загрузки
-  if (isLoadingEquipment) {
+  if (id && !isValidId) {
     return (
       <Layout>
         <div className="flex flex-col items-center justify-center space-y-4 py-10">
-          <p className="text-lg text-muted-foreground">Загрузка данных...</p>
-        </div>
-      </Layout>
-    );
-  }
-
-  // Показываем сообщение, если оборудование не найдено
-  if (!equipment) {
-    return (
-      <Layout>
-        <div className="flex flex-col items-center justify-center space-y-4 py-10">
-          <p className="text-lg text-muted-foreground">Оборудование не найдено</p>
+          <AlertCircle className="h-12 w-12 text-red-500" />
+          <p className="text-xl font-semibold">Неверный формат ID оборудования</p>
           <Button onClick={() => navigate("/catalog")}>
             Вернуться к каталогу
           </Button>
@@ -91,13 +73,50 @@ const EquipmentDetail = () => {
     );
   }
 
-  const formattedDate = (dateString: string) => {
+  // Показываем индикатор загрузки
+  if (isLoadingEquipment) {
+    return (
+      <Layout>
+        <div className="flex flex-col items-center justify-center space-y-4 py-10">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          <p className="text-lg text-muted-foreground">Загрузка данных...</p>
+        </div>
+      </Layout>
+    );
+  }
+
+  // Показываем сообщение об ошибке
+  if (isEquipmentError || !equipment) {
+    return (
+      <Layout>
+        <div className="flex flex-col items-center justify-center space-y-4 py-10">
+          <AlertCircle className="h-12 w-12 text-red-500" />
+          <p className="text-xl font-semibold">Оборудование не найдено</p>
+          <p className="text-muted-foreground">
+            Возможно, оборудование было удалено или у вас нет прав для его просмотра
+          </p>
+          <Button onClick={() => navigate("/catalog")}>
+            Вернуться к каталогу
+          </Button>
+        </div>
+      </Layout>
+    );
+  }
+
+  const formattedDate = (dateString: string | undefined) => {
     if (!dateString) return "Не указано";
     try {
       return format(new Date(dateString), 'dd MMMM yyyy', { locale: ru });
     } catch (error) {
       return dateString;
     }
+  };
+
+  const handleDelete = () => {
+    // Здесь будет реализация удаления оборудования
+    setShowDeleteDialog(false);
+    toast.success("Оборудование удалено");
+    navigate("/catalog");
   };
 
   return (
@@ -121,7 +140,11 @@ const EquipmentDetail = () => {
               <Edit className="mr-2 h-4 w-4" />
               Изменить
             </Button>
-            <Button variant="destructive" className="flex items-center">
+            <Button 
+              variant="destructive" 
+              className="flex items-center"
+              onClick={() => setShowDeleteDialog(true)}
+            >
               <Trash2 className="mr-2 h-4 w-4" />
               Удалить
             </Button>
@@ -148,7 +171,7 @@ const EquipmentDetail = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-x-2 gap-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-2 gap-y-4">
                       <div>
                         <p className="text-sm font-medium text-muted-foreground mb-1">Название</p>
                         <p>{equipment.name}</p>
@@ -206,7 +229,8 @@ const EquipmentDetail = () => {
               <CardContent>
                 {isLoadingHistory ? (
                   <div className="py-8 text-center">
-                    <p className="text-muted-foreground">Загрузка истории...</p>
+                    <Loader2 className="h-8 w-8 mx-auto animate-spin text-muted-foreground" />
+                    <p className="text-muted-foreground mt-2">Загрузка истории...</p>
                   </div>
                 ) : history && history.length > 0 ? (
                   <div className="space-y-4">
@@ -261,6 +285,24 @@ const EquipmentDetail = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Диалог подтверждения удаления */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Подтверждение удаления</AlertDialogTitle>
+            <AlertDialogDescription>
+              Вы действительно хотите удалить оборудование "{equipment.name}"? Это действие нельзя отменить.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Отмена</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
+              Удалить
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Layout>
   );
 };

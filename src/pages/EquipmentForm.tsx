@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft } from "lucide-react";
-import { saveEquipmentToDb, fetchEquipmentById } from "@/services/equipmentService";
+import { saveEquipmentToDb, fetchEquipmentById, isValidUuid } from "@/services/equipmentService";
 import { toast } from "@/components/ui/sonner";
 import { useQuery } from "@tanstack/react-query";
 import { EquipmentCategory, EquipmentStatus } from "@/types";
@@ -30,11 +30,13 @@ const EquipmentForm = () => {
   const { 
     data: existingEquipment, 
     isLoading,
-    isError
+    isError,
+    error
   } = useQuery({
     queryKey: ['equipment', id],
     queryFn: () => fetchEquipmentById(id || ""),
-    enabled: isEditMode
+    enabled: isEditMode && !!id && isValidUuid(id || ""),
+    refetchOnWindowFocus: false
   });
   
   // Форма состояния
@@ -48,6 +50,18 @@ const EquipmentForm = () => {
     location: "",
     description: ""
   });
+
+  // Состояние валидации
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  
+  // Проверяем валидность ID при редактировании
+  useEffect(() => {
+    if (isEditMode && id && !isValidUuid(id)) {
+      toast.error("Неверный формат ID оборудования");
+      navigate("/catalog");
+    }
+  }, [id, isEditMode, navigate]);
   
   // Обновление формы при получении данных
   useEffect(() => {
@@ -71,11 +85,49 @@ const EquipmentForm = () => {
       ...formData,
       [field]: value
     });
+    
+    // Очищаем ошибку поля при его изменении
+    if (validationErrors[field]) {
+      setValidationErrors({
+        ...validationErrors,
+        [field]: ""
+      });
+    }
+  };
+  
+  // Валидация формы
+  const validateForm = (): boolean => {
+    const errors: Record<string, string> = {};
+    
+    if (!formData.name.trim()) {
+      errors.name = "Необходимо указать название";
+    }
+    
+    if (!formData.inventoryNumber.trim()) {
+      errors.inventoryNumber = "Необходимо указать инвентарный номер";
+    }
+    
+    if (!formData.responsiblePerson.trim()) {
+      errors.responsiblePerson = "Необходимо указать ответственное лицо";
+    }
+    
+    if (!formData.location.trim()) {
+      errors.location = "Необходимо указать местоположение";
+    }
+    
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
   };
   
   // Обработка отправки формы
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+    
+    setIsSubmitting(true);
     
     try {
       // Подготовка данных для сохранения
@@ -105,6 +157,8 @@ const EquipmentForm = () => {
     } catch (error) {
       console.error("Error saving equipment:", error);
       toast.error("Произошла ошибка при сохранении");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -168,7 +222,11 @@ const EquipmentForm = () => {
                   value={formData.name}
                   onChange={(e) => handleChange("name", e.target.value)}
                   required
+                  className={validationErrors.name ? "border-red-500" : ""}
                 />
+                {validationErrors.name && (
+                  <p className="text-xs text-red-500 mt-1">{validationErrors.name}</p>
+                )}
               </div>
 
               <div className="form-group">
@@ -178,7 +236,11 @@ const EquipmentForm = () => {
                   value={formData.inventoryNumber}
                   onChange={(e) => handleChange("inventoryNumber", e.target.value)}
                   required
+                  className={validationErrors.inventoryNumber ? "border-red-500" : ""}
                 />
+                {validationErrors.inventoryNumber && (
+                  <p className="text-xs text-red-500 mt-1">{validationErrors.inventoryNumber}</p>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -186,7 +248,7 @@ const EquipmentForm = () => {
                   <Label htmlFor="category">Категория*</Label>
                   <Select 
                     value={formData.category}
-                    onValueChange={(value) => handleChange("category", value)}
+                    onValueChange={(value) => handleChange("category", value as EquipmentCategory)}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Выберите категорию" />
@@ -206,7 +268,7 @@ const EquipmentForm = () => {
                   <Label htmlFor="status">Статус*</Label>
                   <Select 
                     value={formData.status}
-                    onValueChange={(value) => handleChange("status", value)}
+                    onValueChange={(value) => handleChange("status", value as EquipmentStatus)}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Выберите статус" />
@@ -239,7 +301,11 @@ const EquipmentForm = () => {
                   value={formData.responsiblePerson}
                   onChange={(e) => handleChange("responsiblePerson", e.target.value)}
                   required
+                  className={validationErrors.responsiblePerson ? "border-red-500" : ""}
                 />
+                {validationErrors.responsiblePerson && (
+                  <p className="text-xs text-red-500 mt-1">{validationErrors.responsiblePerson}</p>
+                )}
               </div>
 
               <div className="form-group">
@@ -249,7 +315,11 @@ const EquipmentForm = () => {
                   value={formData.location}
                   onChange={(e) => handleChange("location", e.target.value)}
                   required
+                  className={validationErrors.location ? "border-red-500" : ""}
                 />
+                {validationErrors.location && (
+                  <p className="text-xs text-red-500 mt-1">{validationErrors.location}</p>
+                )}
               </div>
 
               <div className="form-group">
@@ -264,11 +334,11 @@ const EquipmentForm = () => {
             </CardContent>
 
             <CardFooter className="flex justify-between border-t pt-6">
-              <Button variant="outline" onClick={() => navigate(-1)}>
+              <Button variant="outline" onClick={() => navigate(-1)} type="button">
                 Отмена
               </Button>
-              <Button type="submit">
-                {isEditMode ? "Сохранить изменения" : "Добавить оборудование"}
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? "Сохранение..." : isEditMode ? "Сохранить изменения" : "Добавить оборудование"}
               </Button>
             </CardFooter>
           </Card>

@@ -26,10 +26,12 @@ const Storage = () => {
     isError
   } = useQuery({
     queryKey: ['storage-equipment', searchTerm, categoryFilter],
-    queryFn: () => fetchFilteredEquipment(searchTerm, 
+    queryFn: () => fetchFilteredEquipment(
+      searchTerm, 
       categoryFilter as EquipmentCategory | "all", 
       "storage" as EquipmentStatus
-    )
+    ),
+    refetchOnWindowFocus: false
   });
 
   // Обработка ошибок загрузки
@@ -61,6 +63,7 @@ const Storage = () => {
           </Button>
         </div>
 
+        {/* Фильтры */}
         <Card>
           <CardHeader>
             <CardTitle>Фильтры</CardTitle>
@@ -103,6 +106,7 @@ const Storage = () => {
           </CardContent>
         </Card>
 
+        {/* Оборудование */}
         <Card>
           <CardHeader>
             <CardTitle>
@@ -119,7 +123,7 @@ const Storage = () => {
                 <p className="mt-2 text-muted-foreground">Загрузка данных...</p>
               </div>
             ) : equipment.length > 0 ? (
-              <div className="table-container">
+              <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
@@ -165,7 +169,7 @@ const Storage = () => {
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
                           <div className="text-sm text-gray-500">
-                            {new Date(item.purchaseDate).toLocaleDateString('ru-RU')}
+                            {item.purchaseDate ? new Date(item.purchaseDate).toLocaleDateString('ru-RU') : 'Не указана'}
                           </div>
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">

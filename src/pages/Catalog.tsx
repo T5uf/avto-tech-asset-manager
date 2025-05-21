@@ -1,8 +1,8 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Layout from "@/components/Layout";
 import { useNavigate } from "react-router-dom";
-import { getCategoryLabel, getStatusLabel } from "@/utils/equipment";
+import { getCategoryLabel } from "@/utils/equipment";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -25,7 +25,6 @@ const Catalog = () => {
     data: equipment = [], 
     isLoading, 
     isError,
-    refetch
   } = useQuery({
     queryKey: ['equipment', searchTerm, categoryFilter, statusFilter],
     queryFn: () => {
@@ -38,15 +37,14 @@ const Catalog = () => {
           statusFilter as EquipmentStatus | "all"
         );
       }
-    }
+    },
+    refetchOnWindowFocus: false
   });
 
   // Обработка ошибок загрузки
-  useEffect(() => {
-    if (isError) {
-      toast.error("Ошибка при загрузке данных оборудования");
-    }
-  }, [isError]);
+  if (isError) {
+    toast.error("Ошибка при загрузке данных оборудования");
+  }
 
   const clearFilters = () => {
     setSearchTerm("");
@@ -72,6 +70,7 @@ const Catalog = () => {
           </Button>
         </div>
 
+        {/* Фильтры */}
         <Card>
           <CardHeader>
             <CardTitle>Фильтры</CardTitle>
@@ -129,6 +128,7 @@ const Catalog = () => {
           </CardContent>
         </Card>
 
+        {/* Оборудование */}
         <Card>
           <CardHeader>
             <CardTitle>
@@ -139,7 +139,7 @@ const Catalog = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="table-container">
+            <div className="overflow-x-auto">
               {isLoading ? (
                 <div className="py-10 text-center">
                   <Loader2 className="h-8 w-8 mx-auto animate-spin text-muted-foreground" />

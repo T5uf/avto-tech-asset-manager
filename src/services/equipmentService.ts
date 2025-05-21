@@ -1,23 +1,27 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Equipment, EquipmentCategory, EquipmentStatus } from "@/types";
 
 // Получение списка всего оборудования
 export const fetchAllEquipment = async (): Promise<Equipment[]> => {
-  const { data, error } = await supabase
-    .from('equipment')
-    .select(`
-      *,
-      category:category_id(name),
-      status:status_id(name, color)
-    `);
+  try {
+    const { data, error } = await supabase
+      .from('equipment')
+      .select(`
+        *,
+        category:category_id(name),
+        status:status_id(name, color)
+      `);
 
-  if (error) {
-    console.error("Error fetching equipment:", error);
+    if (error) {
+      console.error("Error fetching equipment:", error);
+      throw error;
+    }
+
+    return data.map(item => mapDbEquipmentToModel(item));
+  } catch (error) {
+    console.error("Failed to fetch equipment:", error);
     throw error;
   }
-
-  return data.map(item => mapDbEquipmentToModel(item));
 };
 
 // Получение оборудования по ID
@@ -28,26 +32,31 @@ export const fetchEquipmentById = async (id: string): Promise<Equipment | null> 
     return null;
   }
 
-  const { data, error } = await supabase
-    .from('equipment')
-    .select(`
-      *,
-      category:category_id(name),
-      status:status_id(name, color)
-    `)
-    .eq('id', id)
-    .single();
+  try {
+    const { data, error } = await supabase
+      .from('equipment')
+      .select(`
+        *,
+        category:category_id(name),
+        status:status_id(name, color)
+      `)
+      .eq('id', id)
+      .single();
 
-  if (error) {
-    console.error(`Error fetching equipment with id ${id}:`, error);
+    if (error) {
+      console.error(`Error fetching equipment with id ${id}:`, error);
+      return null;
+    }
+
+    return mapDbEquipmentToModel(data);
+  } catch (error) {
+    console.error(`Failed to fetch equipment with id ${id}:`, error);
     return null;
   }
-
-  return mapDbEquipmentToModel(data);
 };
 
 // Функция для проверки валидности UUID
-function isValidUuid(id: string): boolean {
+export function isValidUuid(id: string): boolean {
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   return uuidRegex.test(id);
 }
@@ -58,53 +67,58 @@ export const fetchFilteredEquipment = async (
   category: EquipmentCategory | "all" = "all",
   status: EquipmentStatus | "all" = "all"
 ): Promise<Equipment[]> => {
-  let query = supabase
-    .from('equipment')
-    .select(`
-      *,
-      category:category_id(name),
-      status:status_id(name, color)
-    `);
+  try {
+    let query = supabase
+      .from('equipment')
+      .select(`
+        *,
+        category:category_id(name),
+        status:status_id(name, color)
+      `);
 
-  // Поиск по названию, инвентарному номеру, местоположению или описанию
-  if (searchTerm) {
-    query = query.or(`name.ilike.%${searchTerm}%,inventory_number.ilike.%${searchTerm}%,location.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`);
-  }
-
-  // Фильтр по категории
-  if (category && category !== "all") {
-    const { data: categoryData } = await supabase
-      .from('equipment_categories')
-      .select('id')
-      .eq('name', category)
-      .single();
-    
-    if (categoryData) {
-      query = query.eq('category_id', categoryData.id);
+    // Поиск по названию, инвентарному номеру, местоположению или описанию
+    if (searchTerm) {
+      query = query.or(`name.ilike.%${searchTerm}%,inventory_number.ilike.%${searchTerm}%,location.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`);
     }
-  }
 
-  // Фильтр по статусу
-  if (status && status !== "all") {
-    const { data: statusData } = await supabase
-      .from('equipment_statuses')
-      .select('id')
-      .eq('name', status)
-      .single();
-    
-    if (statusData) {
-      query = query.eq('status_id', statusData.id);
+    // Фильтр по категории
+    if (category && category !== "all") {
+      const { data: categoryData } = await supabase
+        .from('equipment_categories')
+        .select('id')
+        .eq('name', category)
+        .single();
+      
+      if (categoryData) {
+        query = query.eq('category_id', categoryData.id);
+      }
     }
+
+    // Фильтр по статусу
+    if (status && status !== "all") {
+      const { data: statusData } = await supabase
+        .from('equipment_statuses')
+        .select('id')
+        .eq('name', status)
+        .single();
+      
+      if (statusData) {
+        query = query.eq('status_id', statusData.id);
+      }
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error("Error fetching filtered equipment:", error);
+      throw error;
+    }
+
+    return data.map(item => mapDbEquipmentToModel(item));
+  } catch (error) {
+    console.error("Failed to fetch filtered equipment:", error);
+    return [];
   }
-
-  const { data, error } = await query;
-
-  if (error) {
-    console.error("Error fetching filtered equipment:", error);
-    throw error;
-  }
-
-  return data.map(item => mapDbEquipmentToModel(item));
 };
 
 // Сохранение оборудования (создание или обновление)
@@ -204,49 +218,44 @@ export const fetchEquipmentHistory = async (equipmentId: string) => {
     return [];
   }
   
-  const { data, error } = await supabase
-    .from('equipment_history')
-    .select('*')
-    .eq('equipment_id', equipmentId)
-    .order('performed_at', { ascending: false });
+  try {
+    const { data, error } = await supabase
+      .from('equipment_history')
+      .select('*')
+      .eq('equipment_id', equipmentId)
+      .order('performed_at', { ascending: false });
 
-  if (error) {
-    console.error(`Error fetching history for equipment ${equipmentId}:`, error);
-    throw error;
+    if (error) {
+      console.error(`Error fetching history for equipment ${equipmentId}:`, error);
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    console.error(`Failed to fetch history for equipment ${equipmentId}:`, error);
+    return [];
   }
-
-  return data;
 };
 
-// Добавление записи в историю
-export const addHistoryEntry = async (
-  equipmentId: string,
-  action: string,
-  description: string,
-  performedBy: string
-) => {
-  if (!isValidUuid(equipmentId)) {
-    console.error(`Invalid UUID format for equipment ID: ${equipmentId}`);
-    return null;
-  }
-  
-  const { data, error } = await supabase
-    .from('equipment_history')
-    .insert({
-      equipment_id: equipmentId,
-      action,
-      description,
-      performed_by: performedBy
-    })
-    .select();
+// Вспомогательная функция для преобразования данных из БД в модель приложения
+function mapDbEquipmentToModel(dbEquipment: any): Equipment {
+  if (!dbEquipment) return {} as Equipment;
 
-  if (error) {
-    console.error("Error adding history entry:", error);
-    throw error;
-  }
-
-  return data;
-};
+  return {
+    id: dbEquipment.id,
+    name: dbEquipment.name,
+    inventoryNumber: dbEquipment.inventory_number,
+    category: dbEquipment.category?.name || 'other',
+    status: dbEquipment.status?.name || 'active',
+    purchaseDate: dbEquipment.purchase_date,
+    responsiblePerson: dbEquipment.responsible_person,
+    location: dbEquipment.location,
+    description: dbEquipment.description,
+    imageUrl: dbEquipment.image_url,
+    image: dbEquipment.image_url || "/placeholder.svg",
+    qrCode: dbEquipment.qr_code
+  };
+}
 
 // Функции для получения статистики
 export const getEquipmentCounts = async () => {
@@ -338,22 +347,32 @@ export const getCategoryCounts = async () => {
   };
 };
 
-// Вспомогательная функция для преобразования данных из БД в модель приложения
-function mapDbEquipmentToModel(dbEquipment: any): Equipment {
-  if (!dbEquipment) return {} as Equipment;
+// Добавление записи в историю
+export const addHistoryEntry = async (
+  equipmentId: string,
+  action: string,
+  description: string,
+  performedBy: string
+) => {
+  if (!isValidUuid(equipmentId)) {
+    console.error(`Invalid UUID format for equipment ID: ${equipmentId}`);
+    return null;
+  }
+  
+  const { data, error } = await supabase
+    .from('equipment_history')
+    .insert({
+      equipment_id: equipmentId,
+      action,
+      description,
+      performed_by: performedBy
+    })
+    .select();
 
-  return {
-    id: dbEquipment.id,
-    name: dbEquipment.name,
-    inventoryNumber: dbEquipment.inventory_number,
-    category: dbEquipment.category?.name || 'other',
-    status: dbEquipment.status?.name || 'active',
-    purchaseDate: dbEquipment.purchase_date,
-    responsiblePerson: dbEquipment.responsible_person,
-    location: dbEquipment.location,
-    description: dbEquipment.description,
-    imageUrl: dbEquipment.image_url,
-    image: dbEquipment.image_url || "/placeholder.svg",
-    qrCode: dbEquipment.qr_code
-  };
-}
+  if (error) {
+    console.error("Error adding history entry:", error);
+    throw error;
+  }
+
+  return data;
+};
