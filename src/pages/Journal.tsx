@@ -9,7 +9,15 @@ import { Search, FileDown } from "lucide-react";
 import { mockEquipment } from "@/utils/equipment";
 import { DateRangePicker } from "@/components/DateRangePicker";
 import { DateRange, formatDatetime } from "@/utils/dateUtils";
-import { toast } from "@/components/ui/sonner";
+import { exportData, ExportFormat } from "@/utils/exportUtils";
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from "@/components/ui/table";
 
 // Mock journal entries
 const mockJournalEntries = [
@@ -59,7 +67,7 @@ const Journal = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [actionFilter, setActionFilter] = useState("all");
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
-  const [exportFormat, setExportFormat] = useState<"csv" | "excel" | "pdf">("csv");
+  const [exportFormat, setExportFormat] = useState<ExportFormat>("csv");
   
   // Filter journal entries
   const filteredEntries = mockJournalEntries.filter(entry => {
@@ -83,30 +91,18 @@ const Journal = () => {
   
   // Handle journal export
   const handleExportJournal = () => {
-    // In a real app, this would generate and download a file
-    // For demo purposes, we'll just show a toast message
-    
     const rangeText = dateRange?.from && dateRange?.to
-      ? `за период ${formatDatetime(dateRange.from, "dd.MM.yyyy")} - ${formatDatetime(dateRange.to, "dd.MM.yyyy")}`
+      ? `_${formatDatetime(dateRange.from, "dd-MM-yyyy")}_to_${formatDatetime(dateRange.to, "dd-MM-yyyy")}`
       : "";
     
     const filterText = actionFilter !== "all"
-      ? `, тип: ${actionFilter}`
+      ? `_${actionFilter.replace(/\s+/g, "-")}`
       : "";
     
-    toast.success(
-      `Журнал действий ${rangeText}${filterText} экспортирован в формате ${exportFormat.toUpperCase()}`,
-      {
-        description: `Всего записей: ${filteredEntries.length}`,
-      }
-    );
+    const filename = `journal${rangeText}${filterText}`;
     
-    console.log("Экспорт журнала", {
-      entries: filteredEntries,
-      format: exportFormat,
-      dateRange,
-      actionFilter
-    });
+    // Use the exportData utility function
+    exportData(filteredEntries, filename, exportFormat);
   };
 
   // Fixed the typing issue by properly handling the type conversion
@@ -125,7 +121,7 @@ const Journal = () => {
             </p>
           </div>
           <div className="flex items-center gap-2 mt-4 md:mt-0">
-            <Select value={exportFormat} onValueChange={(value: "csv" | "excel" | "pdf") => setExportFormat(value)}>
+            <Select value={exportFormat} onValueChange={(value: ExportFormat) => setExportFormat(value)}>
               <SelectTrigger className="w-[130px]">
                 <SelectValue placeholder="Формат" />
               </SelectTrigger>
@@ -186,7 +182,7 @@ const Journal = () => {
                 <label className="text-sm font-medium mb-2 block">Период</label>
                 <DateRangePicker
                   date={dateRange}
-                  onDateChange={handleDateRangeChange} // Use our wrapper function
+                  onDateChange={handleDateRangeChange}
                 />
               </div>
             </div>
@@ -202,52 +198,36 @@ const Journal = () => {
           </CardHeader>
           <CardContent>
             <div className="rounded-md border">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Дата и время
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Пользователь
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Действие
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Описание
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Дата и время</TableHead>
+                    <TableHead>Пользователь</TableHead>
+                    <TableHead>Действие</TableHead>
+                    <TableHead>Описание</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {filteredEntries.length > 0 ? (
                     filteredEntries.map((entry) => (
-                      <tr key={entry.id}>
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">
-                            {formatDatetime(new Date(entry.date))}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">{entry.user}</div>
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{entry.action}</div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="text-sm text-gray-900">{entry.description}</div>
-                        </td>
-                      </tr>
+                      <TableRow key={entry.id}>
+                        <TableCell className="font-medium">
+                          {formatDatetime(new Date(entry.date))}
+                        </TableCell>
+                        <TableCell>{entry.user}</TableCell>
+                        <TableCell>{entry.action}</TableCell>
+                        <TableCell>{entry.description}</TableCell>
+                      </TableRow>
                     ))
                   ) : (
-                    <tr>
-                      <td colSpan={4} className="px-4 py-8 text-center text-sm text-gray-500">
+                    <TableRow>
+                      <TableCell colSpan={4} className="h-24 text-center">
                         Записи в журнале не найдены
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   )}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           </CardContent>
         </Card>
